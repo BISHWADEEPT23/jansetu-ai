@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // JanSetu AI Citizen Demands Collection
+    // Citizens submit requests; requests are persisted with server-validated fields.
+    match /citizenRequests/{requestId} {
+      // Public read of aggregated citizen requests for transparency & policymaker analytics
+      allow read: if true;
+
+      // Allow creation when valid fields are present
+      allow create: if request.resource.data.category is string
+                    && request.resource.data.originalRequest is string
+                    && request.resource.data.publicRequestId is string
+                    && request.resource.data.schemaVersion == 1;
+
+      // Only allow status and clusterId updates with valid state transitions
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'clusterId'])
+                    && request.resource.data.status in ['SUBMITTED', 'UNDER_ANALYSIS', 'CLUSTERED', 'REVIEWED'];
+
+      // Disallow client deletion to preserve governance audit trail
+      allow delete: if false;
+    }
+
+    // Optional user drafts isolated from confirmed demand analytics
+    match /requestDrafts/{draftId} {
+      allow read, write: if true;
+    }
+
+    // Demand Clusters: Analytical clusters computed from citizen requests
+    match /demandClusters/{clusterId} {
+      allow read: if true;
+      allow create: if request.resource.data.clusterId is string
+                    && request.resource.data.category is string
+                    && request.resource.data.clusterStatus in ['ACTIVE', 'NEEDS_REVIEW', 'ARCHIVED'];
+      allow update: if request.resource.data.clusterStatus in ['ACTIVE', 'NEEDS_REVIEW', 'ARCHIVED'];
+      allow delete: if false; // Immutability and audit preservation
+    }
+
+    // Cluster Audit Events: Immutable governance log for administrative actions
+    match /clusterAuditEvents/{eventId} {
+      allow read: if true;
+      allow create: if request.resource.data.eventId is string
+                    && request.resource.data.clusterId is string
+                    && request.resource.data.action is string;
+      allow update, delete: if false; // Append-only audit trail
+    }
+  }
+}

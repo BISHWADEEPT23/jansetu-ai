@@ -1,0 +1,6 @@
+{
+  "name": "JanSetu AI",
+  "description": "AI-powered citizen development demand intelligence platform designed as a Digital Public Good, transforming local infrastructure needs into actionable public intelligence.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
